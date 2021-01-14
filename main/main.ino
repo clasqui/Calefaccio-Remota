@@ -62,22 +62,34 @@ void setup() {
   Serial.println("Connectat a FONA correctament!");
   //Verbose errors
   fonaSerial->print("AT+CMEE=2\r\n");
-  while(fona.available()) {
+  
+  /*while(fona.available()) {
     Serial.write(fona.read());
   }
   // SIM Number
   fona.print("AT+CCID\r\n");
   while(fona.available()) {
     Serial.write(fona.read());
+  }*/
+  fona.println("AT+CPIN=0733");
+  while(fona.available()) {
+    Serial.write(fona.read());
   }
-  
+
+  int n = fona.getNetworkStatus();
+  if (n == 0) Serial.println(F("Not registered"));
+        if (n == 1) Serial.println(F("Registered (home)"));
+        if (n == 2) Serial.println(F("Not registered (searching)"));
+        if (n == 3) Serial.println(F("Denied"));
+        if (n == 4) Serial.println(F("Unknown"));
+        if (n == 5) Serial.println(F("Registered roaming"));
   /*if (! fona.unlockSIM("0733")) {
       Serial.println(F("La SIM no s'ha pogut desbloquejar correctament :("));
       configError();
   } else {
       Serial.println(F("El PIN és correcte!"));
   }*/
-  fona.unlockSIM("0733");
+  
 }
 
 void configError() {
@@ -105,14 +117,16 @@ void checkBtnResetOnly() {
 
   if(buttonState != lastBtnState) {
     if(buttonState == HIGH) {
+      Serial.println("Comencem a clicar");
       // Comencem a pulsar
       prevMillisRst = cTime;
     }
     lastBtnState = buttonState;
   } else {
     if(buttonState == HIGH && (cTime - prevMillisRst) >= rstBtnInterval) {
+      Serial.println("4s");
       // Comença reset
-      lastButtonState = LOW;
+      lastBtnState = LOW;
       // Reinicialitzem fona
       
       resetFunc(); // Posem PC a adreça 0x0 i tornem a iniciar el programa

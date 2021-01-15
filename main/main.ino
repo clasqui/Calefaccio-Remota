@@ -58,37 +58,33 @@ void setup() {
     configError();
   }
   
-  digitalWrite(LED_BUILTIN, LOW);
+  //digitalWrite(LED_BUILTIN, LOW);
   Serial.println("Connectat a FONA correctament!");
   //Verbose errors
-  fonaSerial->print("AT+CMEE=2\r\n");
+  fona.println("AT+CMEE=2");
   
   /*while(fona.available()) {
     Serial.write(fona.read());
-  }
-  // SIM Number
-  fona.print("AT+CCID\r\n");
-  while(fona.available()) {
-    Serial.write(fona.read());
   }*/
-  fona.println("AT+CPIN=0733");
+  uint16_t vbat;
+        if (! fona.getBattVoltage(&vbat)) {
+          Serial.println(F("Failed to read Batt"));
+        } else {
+          Serial.print(F("VBat = ")); Serial.print(vbat); Serial.println(F(" mV"));
+        }
+   
+  // SIM Number
+  fona.println("AT+CCID");
   while(fona.available()) {
     Serial.write(fona.read());
   }
-
-  int n = fona.getNetworkStatus();
-  if (n == 0) Serial.println(F("Not registered"));
-        if (n == 1) Serial.println(F("Registered (home)"));
-        if (n == 2) Serial.println(F("Not registered (searching)"));
-        if (n == 3) Serial.println(F("Denied"));
-        if (n == 4) Serial.println(F("Unknown"));
-        if (n == 5) Serial.println(F("Registered roaming"));
-  /*if (! fona.unlockSIM("0733")) {
+  
+  if (! fona.unlockSIM("0733")) {
       Serial.println(F("La SIM no s'ha pogut desbloquejar correctament :("));
       configError();
   } else {
       Serial.println(F("El PIN és correcte!"));
-  }*/
+  }
   
 }
 

@@ -15,6 +15,8 @@
 
 #define PINCODE "0733"
 
+#define DEBUG 1
+
 char buffer_resposta[256]; // Resposta
 char fonaNotificationBuffer[64]; //Notificacions
 char smsBuffer[250]; // Lectura sms
@@ -37,9 +39,11 @@ Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 uint8_t readline(char *buff, uint8_t maxbuf, uint16_t timeout = 0);
 
 void setup() {
+  #ifdef DEBUG
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Prova serial debugging...");
+  #endif
 
   // we use builtin led for status
   pinMode(LED_BUILTIN, OUTPUT);
@@ -51,40 +55,49 @@ void setup() {
 
   pinMode(FONA_PS, INPUT);
   pinMode(FONA_KEY, OUTPUT);
+
+  digitalWrite(FONA_KEY, LOW);
   
   fonaSerial->begin(4800);
   if (! fona.begin(*fonaSerial)) {
+    #ifdef DEBUG
     Serial.println("No s'ha pogut connectar...");
+    #endif
     configError();
   }
   
-  //digitalWrite(LED_BUILTIN, LOW);
+  #ifdef DEBUG
   Serial.println("Connectat a FONA correctament!");
   //Verbose errors
   fona.println("AT+CMEE=2");
-  
-  /*while(fona.available()) {
-    Serial.write(fona.read());
-  }*/
+
   uint16_t vbat;
-        if (! fona.getBattVoltage(&vbat)) {
-          Serial.println(F("Failed to read Batt"));
-        } else {
-          Serial.print(F("VBat = ")); Serial.print(vbat); Serial.println(F(" mV"));
-        }
+  if (! fona.getBattVoltage(&vbat)) {
+    Serial.println(F("Failed to read Batt"));
+  } else {
+    Serial.print(F("VBat = ")); Serial.print(vbat); Serial.println(F(" mV"));
+  }
    
   // SIM Number
   fona.println("AT+CCID");
   while(fona.available()) {
     Serial.write(fona.read());
   }
+  #endif
   
-  if (! fona.unlockSIM("0733")) {
-      Serial.println(F("La SIM no s'ha pogut desbloquejar correctament :("));
-      configError();
-  } else {
-      Serial.println(F("El PIN és correcte!"));
+  if (! fona.unlockSIM(PINCODE)) {
+    #ifdef DEBUG
+    Serial.println(F("La SIM no s'ha pogut desbloquejar correctament :("));
+    #endif
+    configError();
   }
+  #ifdef DEBUG 
+  else {
+    Serial.println(F("El PIN és correcte!"));
+  }
+  #endif
+
+  // Llegim temperatura i enviem missatge inicialització
   
 }
 
@@ -113,18 +126,22 @@ void checkBtnResetOnly() {
 
   if(buttonState != lastBtnState) {
     if(buttonState == HIGH) {
+      #ifdef DEBUG
       Serial.println("Comencem a clicar");
+      #endif
       // Comencem a pulsar
       prevMillisRst = cTime;
     }
     lastBtnState = buttonState;
   } else {
     if(buttonState == HIGH && (cTime - prevMillisRst) >= rstBtnInterval) {
+      #ifdef DEBUG
       Serial.println("4s");
+      #endif
       // Comença reset
       lastBtnState = LOW;
       // Reinicialitzem fona
-      
+      resetFona();
       resetFunc(); // Posem PC a adreça 0x0 i tornem a iniciar el programa
       
     }
@@ -132,7 +149,20 @@ void checkBtnResetOnly() {
 }
 
 void resetFona() {
-  
+  if(digitalRead(FONA_PS)) {
+    // Fem el cicle sencer de KEY
+    digitalWrite(FONA_KEY, HIGH);
+    delay(200);
+    digitalWrite(FONA_KEY, LOW);
+    delay(2500);
+    digitalWrite(FONA_KEY, HIGH);
+    delay(500);
+    digitalWrite(FONA_KEY, LOW);
+  } else {
+    digitalWrite(FONA_KEY, HIGH);
+    delay(200);
+    digitalWrite(FONA_KEY, LOW);
+  }
 }
 
 void loop() {

@@ -1,6 +1,7 @@
 
 
 #include "Adafruit_FONA.h"
+#include "OneWire.h"
 
 #define FONA_RX 11
 #define FONA_TX 12
@@ -17,7 +18,10 @@
 
 #define DEBUG 1
 
-char buffer_resposta[256]; // Resposta
+#define ALLOWED_TLFS {"689582190", "609120101"}
+#define DEBUG_TLF "689582190"
+
+char buffer_resposta[160]; // Resposta
 char fonaNotificationBuffer[64]; //Notificacions
 char smsBuffer[250]; // Lectura sms
 
@@ -35,6 +39,7 @@ SoftwareSerial *fonaSerial = &fonaSS;
 
 // Use this for FONA 800 and 808s
 Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
+OneWire onewire(TEMP_READ);
 
 uint8_t readline(char *buff, uint8_t maxbuf, uint16_t timeout = 0);
 
@@ -45,16 +50,15 @@ void setup() {
   Serial.println("Prova serial debugging...");
   #endif
 
-  // we use builtin led for status
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
-
   pinMode(STATUS_LED, OUTPUT);
+  digitalWrite(STATUS_LED, HIGH);
   pinMode(CTRL_BUTTON, INPUT); // Possibilitat de posar Hardware Interrupt #1
   pinMode(RELAY_OUT, OUTPUT);
 
   pinMode(FONA_PS, INPUT);
   pinMode(FONA_KEY, OUTPUT);
+
+  pinMode(TEMP_READ, INPUT_PULLUP);  // M'he descuidat d'afegir la resistència pull-up al circuit per el DS18B20, provarem això
 
   digitalWrite(FONA_KEY, LOW);
   
@@ -98,7 +102,57 @@ void setup() {
   #endif
 
   // Llegim temperatura i enviem missatge inicialització
+  float tempInicial;
+  if(!mesuraTemp(&tempInicial)) {
+    configError();
+  }
+
+  int msg_size = sprintf(buffer_resposta, "Espot-nik iniciat correctament! Temperatura actual: %'.2f", tempInicial);
+  if(!fona.sendSMS(DEBUG_TLF, buffer_resposta)) {
+    #ifdef DEBUG
+    Serial.println("No s'ha pogut enviar el missatge d'inicialització");
+    #endif
+    configError();
+  }
   
+}
+
+bool mesuraTemp(float *lectura) {
+  uint8_t data[12];
+  int i;
+
+  *lectura = -100.0;
+
+  // enviar comando de iniciar la conversion de temperatura
+  // primero generamos pulso de reset
+  onewire.reset();
+  // enviar el comando skip ROM que selecciona todos los dispositivos en el bus
+  onewire.skip();
+  // enviar el comando de comienzo de conversion A/D
+  onewire.write(0x44);
+
+  // esperar el termino de conversion AD en el sensor
+  delay(1000);
+
+  // prestamos atención al pulso de presencia al generar el pulso de reset
+  if (!onewire.reset())
+    return false;
+  // enviar el comando skip ROM que selecciona todos los dispositivos en el bus
+  onewire.skip();
+  // enviar comando de lectura de scratchpad
+  onewire.write(0xBE);
+
+  // comenzar lectura de datos
+  for (i = 0; i < 9; i++)
+    data[i] = onewire.read();
+
+  // alinear los datos recibidos
+  int16_t temp = (((int16_t)data[1]) << 11) | (((int16_t)data[0]) << 3);
+
+  // convertir a graus centigrads
+  *lectura = (float)temp * 0.0078125;
+
+  return true;
 }
 
 void configError() {

@@ -2,6 +2,7 @@
 
 #include "Adafruit_FONA.h"
 #include "OneWire.h"
+#include <stdlib.h>
 
 #define FONA_RX 11
 #define FONA_TX 12
@@ -58,7 +59,7 @@ void setup() {
   pinMode(FONA_PS, INPUT);
   pinMode(FONA_KEY, OUTPUT);
 
-  pinMode(TEMP_READ, INPUT_PULLUP);  // M'he descuidat d'afegir la resistència pull-up al circuit per el DS18B20, provarem això
+  //pinMode(TEMP_READ, INPUT_PULLUP);  // M'he descuidat d'afegir la resistència pull-up al circuit per el DS18B20, provarem això
 
   digitalWrite(FONA_KEY, LOW);
   
@@ -101,13 +102,21 @@ void setup() {
   }
   #endif
 
+  // Esperem 3 segons, temps de resposta per avtivar després de desbloquejar el pin de la SIM
+  delay(3500);
+  // I buidem la resposta del desbloqueig ("Call ready... etc")
+  fona.flush();
+  
   // Llegim temperatura i enviem missatge inicialització
   float tempInicial;
   if(!mesuraTemp(&tempInicial)) {
     configError();
   }
 
-  int msg_size = sprintf(buffer_resposta, "Espot-nik iniciat correctament! Temperatura actual: %'.2f", tempInicial);
+  char tmp[8];
+  dtostrf(tempInicial, 6, 2, tmp);
+  int msg_size = sprintf(buffer_resposta, "Espot-nik iniciat correctament! Temperatura actual:%s", tmp);
+  
   if(!fona.sendSMS(DEBUG_TLF, buffer_resposta)) {
     #ifdef DEBUG
     Serial.println("No s'ha pogut enviar el missatge d'inicialització");
@@ -137,6 +146,7 @@ bool mesuraTemp(float *lectura) {
   // prestamos atención al pulso de presencia al generar el pulso de reset
   if (!onewire.reset())
     return false;
+    
   // enviar el comando skip ROM que selecciona todos los dispositivos en el bus
   onewire.skip();
   // enviar comando de lectura de scratchpad

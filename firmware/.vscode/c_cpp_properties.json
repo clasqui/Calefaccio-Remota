@@ -1,0 +1,64 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/include",
+                "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/src",
+                "/home/marc/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/DallasTemperature",
+                "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/OneWire",
+                "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/Adafruit FONA Library",
+                "/home/marc/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/home/marc/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                "/home/marc/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/home/marc/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "/home/marc/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "/home/marc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                "/home/marc/.platformio/packages/tool-unity",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/include",
+                    "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/src",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/DallasTemperature",
+                    "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/OneWire",
+                    "/home/marc/Documents/Personal/programacio/calefaccio-remot/firmware/.pio/libdeps/protrinket3/Adafruit FONA Library",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "/home/marc/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    "/home/marc/.platformio/packages/tool-unity",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=50004",
+                "ARDUINO_AVR_PROTRINKET3",
+                "F_CPU=12000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega328P__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/home/marc/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega328p",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

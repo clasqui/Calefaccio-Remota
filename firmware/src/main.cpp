@@ -1,8 +1,10 @@
 
 
+#include <Arduino.h>
 #include "Adafruit_FONA.h"
 #include "OneWire.h"
 #include <stdlib.h>
+#include <SoftwareSerial.h>
 
 #define FONA_RX 11
 #define FONA_TX 12
@@ -37,7 +39,7 @@ bool estat = false;
 // Mirar-se aquest metode tambe: https://www.codeproject.com/articles/1012319/arduino-software-reset
 void(* resetFunc) (void) = 0x0000;  //declare reset function at address 0
 
-#include <SoftwareSerial.h>
+
 SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
 SoftwareSerial *fonaSerial = &fonaSS;
 
@@ -46,6 +48,15 @@ Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 OneWire onewire(TEMP_READ);
 
 uint8_t readline(char *buff, uint8_t maxbuf, uint16_t timeout = 0);
+
+int putCalefaccioOn(void);
+int putCalefaccioOff(void);
+
+void resetFona(void);
+bool mesuraTemp(float *lectura);
+void checkBtnResetOnly();
+
+void configError(void);
 
 void setup() {
   #ifdef DEBUG
@@ -322,7 +333,7 @@ void loop() {
   // 2. Comprovem rebuda de missatges
   char* bufPtr = fonaNotificationBuffer;
 
-  if(fona.available() {
+  if(fona.available()) {
     int slot = 0;            //this will be the slot number of the SMS
     int charCount = 0;
     //Read the notification into fonaInBuffer
@@ -348,7 +359,7 @@ void loop() {
 
         // Retrieve SMS value.
         uint16_t smslen;
-        fona.readSMS(slot, smsBuffer, 250, &smslen)
+        fona.readSMS(slot, smsBuffer, 250, &smslen);
 
       // 3. Tractament del missatge i resposta comanda
 
@@ -385,9 +396,4 @@ int putCalefaccioOff() {
     Serial.println("Calefaccio aturada");
   #endif
   return 0;
-}
-
-void escoltarMissatge(char *info) {
-
-  return;
 }

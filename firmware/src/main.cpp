@@ -19,8 +19,6 @@
 
 #define PINCODE "0733"
 
-#define DEBUG 1
-
 #define ALLOWED_TLFS {"689582190", "609120101"}
 #define DEBUG_TLF "689582190"
 
@@ -31,7 +29,7 @@ char smsBuffer[250]; // Lectura sms
 // For reset button check
 unsigned long prevMillisRst = 0;
 const long rstBtnInterval = 4000;
-int lastBtnState = LOW;
+char lastBtnState = LOW;
 
 // CONTROL D'ESTAT
 bool estat = false;
@@ -62,7 +60,7 @@ void setup() {
   #ifdef DEBUG
   // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("Prova serial debugging...");
+  Serial.println(F("Prova serial debugging..."));
   #endif
 
   pinMode(STATUS_LED, OUTPUT);
@@ -80,15 +78,15 @@ void setup() {
   fonaSerial->begin(4800);
   if (! fona.begin(*fonaSerial)) {
     #ifdef DEBUG
-    Serial.println("No s'ha pogut connectar...");
+    Serial.println(F("No s'ha pogut connectar..."));
     #endif
     configError();
   }
   
   #ifdef DEBUG
-  Serial.println("Connectat a FONA correctament!");
+  Serial.println(F("Connectat a FONA correctament!"));
   //Verbose errors
-  fona.println("AT+CMEE=2");
+  fona.println(F("AT+CMEE=2"));
 
   uint16_t vbat;
   if (! fona.getBattVoltage(&vbat)) {
@@ -98,7 +96,7 @@ void setup() {
   }
    
   // SIM Number
-  fona.println("AT+CCID");
+  fona.println(F("AT+CCID"));
   while(fona.available()) {
     Serial.write(fona.read());
   }
@@ -126,22 +124,6 @@ void setup() {
   if(!mesuraTemp(&tempInicial)) {
     configError();
   }
-
-  char tmp[8];
-  dtostrf(tempInicial, 6, 2, tmp);
-  int msg_size = sprintf(buffer_resposta, "Espot-nik iniciat correctament! Temperatura actual:%s", tmp);
-  #ifdef DEBUG
-    Serial.println(buffer_resposta);
-  #endif
-
-  /*
-  if(!fona.sendSMS(DEBUG_TLF, buffer_resposta)) {
-    #ifdef DEBUG
-    Serial.println("No s'ha pogut enviar el missatge d'inicialització");
-    #endif
-    configError();
-  }
-  */
 
   #ifdef DEBUG
   int8_t smsnum = fona.getNumSMS();
@@ -179,6 +161,22 @@ void setup() {
   for(int i = smsnum; i>0; --i) {
     fona.deleteSMS(i);
   }
+
+  char tmp[8];
+  dtostrf(tempInicial, 6, 2, tmp);
+  int msg_size = sprintf(buffer_resposta, "Espot-nik iniciat correctament! Temperatura actual:%s", tmp);
+  #ifdef DEBUG
+    Serial.println(buffer_resposta);
+  #endif
+
+  
+  if(!fona.sendSMS(DEBUG_TLF, buffer_resposta)) {
+    #ifdef DEBUG
+    Serial.println(F("No s'ha pogut enviar el missatge d'inicialització"));
+    #endif
+    configError();
+  }
+  
   
   #endif
   fonaSerial->print("AT+CNMI=2,1\r\n");
@@ -253,7 +251,7 @@ void checkBtnResetOnly() {
   if(buttonState != lastBtnState) {
     if(buttonState == HIGH) {
       #ifdef DEBUG
-      Serial.println("Comencem a clicar");
+      Serial.println(F("Comencem a clicar"));
       #endif
       // Comencem a pulsar
       prevMillisRst = cTime;
@@ -262,7 +260,7 @@ void checkBtnResetOnly() {
   } else {
     if(buttonState == HIGH && (cTime - prevMillisRst) >= rstBtnInterval) {
       #ifdef DEBUG
-      Serial.println("4s");
+      Serial.println(F("4s"));
       #endif
       // Comença reset
       lastBtnState = LOW;
@@ -290,7 +288,7 @@ void resetFona() {
     digitalWrite(FONA_KEY, LOW);
   }
   #ifdef DEBUG
-    Serial.println("FONA resettejat");
+    Serial.println(F("FONA resettejat"));
   #endif
 }
 
@@ -304,7 +302,7 @@ void loop() {
   if(buttonState != lastBtnState) {
     if(buttonState == HIGH) {
       #ifdef DEBUG
-      Serial.println("Comencem a clicar");
+      Serial.println(F("Comencem a clicar"));
       #endif
       // Comencem a pulsar
       prevMillisRst = cTime;
@@ -319,7 +317,7 @@ void loop() {
   } else {
     if(buttonState == HIGH && (cTime - prevMillisRst) >= rstBtnInterval) {
       #ifdef DEBUG
-      Serial.println("4s");
+      Serial.println(F("4s"));
       #endif
       // Comença reset
       lastBtnState = LOW;
@@ -339,7 +337,11 @@ void loop() {
     //Read the notification into fonaInBuffer
     do  {
       *bufPtr = fona.read();
+      
+      #ifdef DEBUG
       Serial.write(*bufPtr);
+      #endif
+
       delay(1);
     } while ((*bufPtr++ != '\n') && (fona.available()) && (++charCount < (sizeof(fonaNotificationBuffer)-1)));
     
@@ -347,25 +349,86 @@ void loop() {
     *bufPtr = 0;
 
     if (1 == sscanf(fonaNotificationBuffer, "+CMTI: " FONA_PREF_SMS_STORAGE ",%d", &slot)) {
-      Serial.print("slot: "); Serial.println(slot);
       
-      char callerIDbuffer[32];  //we'll store the SMS sender number in here
+      char numRemitent[32];  //we'll store the SMS sender number in here
       
-      // Retrieve SMS sender address/phone number.
-      if (! fona.getSMSSender(slot, callerIDbuffer, 31)) {
-        Serial.println("Didn't find SMS message in slot!");
-      }
-      Serial.print(F("FROM: ")); Serial.println(callerIDbuffer);
+      // Obtenim el numero del remitent
+      if (! fona.getSMSSender(slot, numRemitent, 31)) {
+        #ifdef DEBUG
+        Serial.println(F("Didn't find SMS message in slot!"));
+        #endif
 
-        // Retrieve SMS value.
-        uint16_t smslen;
-        fona.readSMS(slot, smsBuffer, 250, &smslen);
+        return;
+
+      }
+      #ifdef DEBUG
+      Serial.print(F("DE: ")); Serial.println(numRemitent);
+      #endif
+
+      // Obtenim el text del missatge
+      uint16_t smslen;
+      fona.readSMS(slot, smsBuffer, 250, &smslen);
 
       // 3. Tractament del missatge i resposta comanda
+      char * comanda = strtok(smsBuffer, " ");
+      float lecturaTmp;
 
+      if(strcmp(comanda, "engegar") == 0 || strcmp(comanda, "Engegar") == 0 || strcmp(comanda, "ENGEGAR") == 0) {
+        putCalefaccioOn();
+        mesuraTemp(&lecturaTmp);
+        char tmp[8];
+        dtostrf(lecturaTmp, 6, 2, tmp);
+        sprintf(buffer_resposta, "Calefacció encesa! Temperatura actual:%sºC", tmp);
+        if(!fona.sendSMS(numRemitent, buffer_resposta)) {
+          #ifdef DEBUG
+          Serial.println(F("No s'ha pogut enviar reposta"));
+          #endif
+          resetFona();
+          resetFunc();
+        }
+      } else if(strcmp(comanda, "apagar") == 0 || strcmp(comanda, "Apagar") == 0 || strcmp(comanda, "APAGAR") == 0) {
+        putCalefaccioOff();
+        mesuraTemp(&lecturaTmp);
+        char tmp[8];
+        dtostrf(lecturaTmp, 6, 2, tmp);
+        sprintf(buffer_resposta, "Calefacció apagada! Temperatura actual:%sºC", tmp);
+        if(!fona.sendSMS(numRemitent, buffer_resposta)) {
+          #ifdef DEBUG
+          Serial.println(F("No s'ha pogut enviar reposta"));
+          #endif
+          resetFona();
+          resetFunc();
+        }
+      } else if(strcmp(comanda, "estat") == 0 || strcmp(comanda, "Estat") == 0 || strcmp(comanda, "ESTAT") == 0) {
+        mesuraTemp(&lecturaTmp);
+        char tmp[8];
+        dtostrf(lecturaTmp, 6, 2, tmp);
+
+        if(estat) {
+          sprintf(buffer_resposta, "Ara mateix, la calefacció està encesa i la temperatura actual és%s ºC", tmp);
+        } else {
+          sprintf(buffer_resposta, "Ara mateix, la calefacció està apagada i la temperatura actual és%s ºC", tmp);
+        }
+        
+        if(!fona.sendSMS(numRemitent, buffer_resposta)) {
+          #ifdef DEBUG
+          Serial.println(F("No s'ha pogut enviar reposta"));
+          #endif
+          resetFona();
+          resetFunc();
+        }
+      } else {
+        if(!fona.sendSMS(numRemitent, "No t'entenc. Pots enviar-me aixo: engegar, apagar, estat")) {
+          #ifdef DEBUG
+          Serial.println(F("No s'ha pogut enviar reposta"));
+          #endif
+          resetFona();
+          resetFunc();
+        }
+      }
       
       
-      // delete the original msg after it is processed
+      // 4. delete the original msg after it is processed
       //   otherwise, we will fill up all the slots
       //   and then we won't be able to receive SMS anymore
       if (fona.deleteSMS(slot)) {
@@ -373,8 +436,16 @@ void loop() {
       } else {
         Serial.print(F("Couldn't delete SMS in slot ")); Serial.println(slot);
         fona.print(F("AT+CMGD=?\r\n"));
+        resetFona();
+        resetFunc();
       }
     }
+    #ifdef DEBUG 
+    else {
+      // No és una notificacio de Missatge, sudem
+      Serial.println(F("Notificacio random rebuda"));
+    }
+    #endif
   }
 }
 
@@ -383,7 +454,7 @@ int putCalefaccioOn() {
   digitalWrite(STATUS_LED, HIGH);
   estat = true;
   #ifdef DEBUG
-    Serial.println("Calefaccio encesa");
+    Serial.println(F("Calefaccio encesa"));
   #endif
   return 0;
 }
@@ -393,7 +464,7 @@ int putCalefaccioOff() {
   digitalWrite(STATUS_LED, LOW);
   estat = false;
   #ifdef DEBUG
-    Serial.println("Calefaccio aturada");
+    Serial.println(F("Calefaccio aturada"));
   #endif
   return 0;
 }
